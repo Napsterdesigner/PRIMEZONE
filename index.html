@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -7,39 +6,541 @@
     <title>PRIMEZONE | Admin & Team Performance</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            background-color: #050505;
-            color: #ffffff;
+        :root {
+            --bg-image: url('https://wallpapers.com/images/hd/purple-city-lights-x14uc9hkwvor0pxe.jpg');
+            --bg-color: #050505;
+            --glass-bg: rgba(15, 15, 15, 0.65);
+            --sidebar-bg: rgba(15, 15, 15, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --text-main: #ffffff;
+            --accent: #a855f7;
+            --accent-glow: rgba(168, 85, 247, 0.4);
+            --overlay: rgba(0, 0, 0, 0.75);
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            background-color: var(--bg-color);
+            background-image: var(--bg-image);
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            color: var(--text-main);
             margin: 0;
             overflow: hidden;
         }
-        /* Custom scrollbar for webkit */
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(168, 85, 247, 0.4); }
 
-        .glass {
-            background: rgba(15, 15, 15, 0.65);
-            backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--overlay);
+            backdrop-filter: blur(40px) saturate(160%);
+            z-index: -1;
         }
+
+        .sidebar-glass { 
+            background: var(--sidebar-bg); 
+            backdrop-filter: blur(50px); 
+            border-right: 1px solid var(--glass-border); 
+        }
+
+        .card-glass { 
+            background: var(--glass-bg); 
+            border: 1px solid var(--glass-border); 
+            backdrop-filter: blur(20px) saturate(180%); 
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.2);
+        }
+        .btn-primary:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 10px 25px var(--accent-glow);
+        }
+
+        .loader-container {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-color);
+            z-index: 9999;
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .loader-container.hidden-fade {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+        
+        .habit-card { transition: all 0.3s ease; border: 1px solid var(--glass-border); }
+        .habit-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+        .habit-card.completed { border-color: rgba(34, 197, 94, 0.4); background: rgba(34, 197, 94, 0.05); }
+
+        .animate-pop { animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop {
+            0% { transform: scale(0.92); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        input::placeholder { color: rgba(255,255,255,0.2); }
     </style>
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "recharts": "https://esm.sh/recharts@^3.6.0"
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
 </head>
-<body>
-    <div id="root"></div>
+<body class="h-screen flex">
+
+    <div id="loader" class="loader-container">
+        <div class="flex flex-col items-center gap-6">
+            <div class="relative">
+                <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-500"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i data-lucide="zap" class="w-6 h-6 text-purple-400 fill-current animate-pulse"></i>
+                </div>
+            </div>
+            <p class="text-[10px] font-black tracking-[0.6em] text-purple-400 uppercase">Sincronizando Rede Ativa...</p>
+        </div>
+    </div>
+
+    <div id="app-root" class="flex w-full h-full opacity-0 transition-opacity duration-700"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot, addDoc, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+
+        // Fallback para config vazia caso não injetado
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "empty", authDomain: "pz.firebaseapp.com", projectId: "pz-v2" };
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'primezone-v2';
+        const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        let app, auth, db;
+        try {
+            app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Erro ao inicializar Firebase:", e);
+        }
+
+        const TEAM = [
+            { id: "u1", name: "ALEX FENIAS", role: "Funnel Builder", img: "https://i.postimg.cc/XZQw9gr3/ALEX.png" },
+            { id: "u2", name: "ARCENIO HUMBERTO", role: "Copywriter", img: "https://i.postimg.cc/0Mj7nJSk/ARCENIO.png" },
+            { id: "u3", name: "SCHNAYDER NANGY", role: "VSL Creator", img: "https://i.postimg.cc/r0s5jt45/NAPSTER.png" },
+            { id: "u4", name: "ARTUR NAKARAPA", role: "Ads Maker", img: "https://i.postimg.cc/PpJ1y8Dd/ARTUR.png" },
+            { id: "u5", name: "AGAPITO SUMBANE", role: "Offers Miner", img: "https://i.postimg.cc/Xv5QPMRt/AGAPITO.png" }
+        ];
+
+        const ACCESS_KEYS = {
+            "PRETOSOLTO": "u1", "BADWOLF": "u2", "NAPSTER": "u3", "NAKA": "u4", "OTIPJAN": "u5", "PRIME": "admin"
+        };
+
+        let state = {
+            isLogged: localStorage.getItem('pz_logged') === 'true',
+            isAdmin: localStorage.getItem('pz_is_admin') === 'true',
+            activeMember: TEAM.find(m => m.id === localStorage.getItem('pz_active_id')) || TEAM[0],
+            habits: [],
+            allTeamData: {}, 
+            selectedDate: new Date().toISOString().split('T')[0],
+            unsubscribes: [],
+            user: null,
+            initialSyncDone: false
+        };
+
+        let mainChart = null;
+        let adminChart = null;
+
+        function hideLoader() {
+            const l = document.getElementById('loader');
+            if(l) l.classList.add('hidden-fade');
+            const r = document.getElementById('app-root');
+            if(r) r.classList.replace('opacity-0', 'opacity-100');
+        }
+
+        function render() {
+            const root = document.getElementById('app-root');
+            if (!root) return;
+            
+            if (!state.isLogged) {
+                root.innerHTML = renderLogin();
+            } else {
+                root.innerHTML = renderDashboard();
+                setTimeout(() => {
+                    updateMainChart();
+                    if (state.isAdmin) updateAdminChart();
+                }, 100);
+            }
+            lucide.createIcons();
+        }
+
+        async function syncData() {
+            if (!state.user || !db) {
+                hideLoader();
+                render();
+                return;
+            }
+
+            state.unsubscribes.forEach(unsub => unsub());
+            state.unsubscribes = [];
+
+            const hideLoaderOnce = () => {
+                if(!state.initialSyncDone) {
+                    state.initialSyncDone = true;
+                    hideLoader();
+                }
+            };
+
+            if (state.isAdmin) {
+                let snapshotsReceived = 0;
+                TEAM.forEach(member => {
+                    const colPath = `artifacts/${appId}/public/data/habits_${member.id}`;
+                    const unsub = onSnapshot(collection(db, colPath), (snap) => {
+                        state.allTeamData[member.id] = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        if (state.activeMember.id === member.id) {
+                            state.habits = state.allTeamData[member.id];
+                        }
+                        snapshotsReceived++;
+                        if (snapshotsReceived >= TEAM.length) hideLoaderOnce();
+                        render();
+                    }, (err) => {
+                        console.error("Erro Firestore Admin:", err);
+                        hideLoaderOnce();
+                    });
+                    state.unsubscribes.push(unsub);
+                });
+            } else {
+                const colPath = `artifacts/${appId}/public/data/habits_${state.activeMember.id}`;
+                const unsub = onSnapshot(collection(db, colPath), (snap) => {
+                    state.habits = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                    hideLoaderOnce();
+                    render();
+                }, (err) => {
+                    console.error("Erro Firestore User:", err);
+                    hideLoaderOnce();
+                });
+                state.unsubscribes.push(unsub);
+            }
+
+            // Timeout de segurança para caso o Firestore não retorne nada
+            setTimeout(hideLoaderOnce, 2500);
+        }
+
+        window.handleLogin = () => {
+            const input = document.getElementById('passInput')?.value.trim().toUpperCase();
+            if (ACCESS_KEYS[input]) {
+                const role = ACCESS_KEYS[input];
+                state.isLogged = true;
+                if (role === "admin") {
+                    state.isAdmin = true;
+                    state.activeMember = TEAM[0];
+                } else {
+                    state.isAdmin = false;
+                    state.activeMember = TEAM.find(m => m.id === role);
+                }
+                localStorage.setItem('pz_logged', 'true');
+                localStorage.setItem('pz_is_admin', state.isAdmin);
+                localStorage.setItem('pz_active_id', state.activeMember.id);
+                
+                if (state.user) {
+                    syncData();
+                } else {
+                    render();
+                }
+            } else {
+                const err = document.getElementById('loginErr');
+                if(err) {
+                    err.classList.remove('hidden');
+                    setTimeout(() => err.classList.add('hidden'), 3000);
+                }
+            }
+        };
+
+        window.logout = () => {
+            state.isLogged = false;
+            state.isAdmin = false;
+            state.habits = [];
+            state.initialSyncDone = false;
+            localStorage.clear();
+            state.unsubscribes.forEach(u => u());
+            state.unsubscribes = [];
+            render();
+        };
+
+        window.switchMember = (id) => {
+            if (!state.isAdmin) return;
+            state.activeMember = TEAM.find(m => m.id === id);
+            state.habits = state.allTeamData[id] || [];
+            localStorage.setItem('pz_active_id', id);
+            render();
+        };
+
+        window.addHabit = async (e) => {
+            if (e) e.preventDefault();
+            const input = document.getElementById('newHabitInput');
+            const text = input.value.trim();
+            if (!text || !state.user || !db) return;
+
+            const colPath = `artifacts/${appId}/public/data/habits_${state.activeMember.id}`;
+            await addDoc(collection(db, colPath), {
+                name: text,
+                completedDays: [],
+                createdAt: Date.now()
+            });
+            input.value = "";
+        };
+
+        window.toggleHabit = async (id) => {
+            const habit = state.habits.find(h => h.id === id);
+            if (!habit || !db) return;
+            const days = habit.completedDays || [];
+            const updatedDays = days.includes(state.selectedDate) 
+                ? days.filter(d => d !== state.selectedDate) 
+                : [...days, state.selectedDate];
+            
+            const docRef = doc(db, `artifacts/${appId}/public/data/habits_${state.activeMember.id}`, id);
+            await updateDoc(docRef, { completedDays: updatedDays });
+        };
+
+        window.deleteHabit = async (id) => {
+            if(!db) return;
+            const docRef = doc(db, `artifacts/${appId}/public/data/habits_${state.activeMember.id}`, id);
+            await deleteDoc(docRef);
+        };
+
+        window.changeDate = (offset) => {
+            const d = new Date(state.selectedDate + "T12:00:00");
+            d.setDate(d.getDate() + offset);
+            state.selectedDate = d.toISOString().split('T')[0];
+            render();
+        };
+
+        function renderLogin() {
+            return `
+                <div class="w-full flex items-center justify-center p-6 h-screen">
+                    <div class="card-glass p-12 rounded-[2.5rem] w-full max-w-sm text-center shadow-2xl animate-pop">
+                        <div class="mb-12">
+                            <div class="w-20 h-20 bg-purple-600 rounded-[2rem] mx-auto flex items-center justify-center mb-8 shadow-2xl">
+                                <i data-lucide="zap" class="text-white w-10 h-10 fill-current"></i>
+                            </div>
+                            <h1 class="text-4xl font-black tracking-tighter mb-2 italic">PRIMEZONE</h1>
+                            <p class="text-[10px] font-bold text-purple-400 tracking-[0.5em] uppercase opacity-80">Cloud Authentication</p>
+                        </div>
+                        <div class="space-y-4">
+                            <input type="password" id="passInput" placeholder="SUA CHAVE" onkeydown="if(event.key==='Enter') handleLogin()" class="w-full bg-white/5 border border-white/10 py-5 px-6 rounded-2xl text-center text-sm font-bold tracking-[0.2em] outline-none focus:border-purple-500 focus:bg-white/10 transition-all text-white">
+                            <p id="loginErr" class="text-rose-500 text-[10px] font-bold hidden uppercase tracking-widest animate-pulse">Chave Inválida</p>
+                            <button onclick="handleLogin()" class="btn-primary w-full py-5 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em]">Entrar na Rede</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDashboard() {
+            const doneToday = state.habits.filter(h => h.completedDays?.includes(state.selectedDate)).length;
+            const total = state.habits.length;
+            const progress = total > 0 ? Math.round((doneToday / total) * 100) : 0;
+            const dateStr = new Date(state.selectedDate + "T12:00:00").toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' });
+
+            return `
+                <aside class="w-72 sidebar-glass flex flex-col h-full z-10 shrink-0">
+                    <div class="p-8 flex-1 overflow-y-auto custom-scrollbar">
+                        <div class="flex items-center gap-3 mb-10 px-2">
+                            <div class="bg-purple-600 p-2 rounded-xl shadow-lg"><i data-lucide="zap" class="w-5 h-5 text-white"></i></div>
+                            <span class="font-extrabold text-xl tracking-tighter uppercase italic">Primezone</span>
+                        </div>
+                        <div class="space-y-1">
+                            ${TEAM.filter(m => state.isAdmin || m.id === state.activeMember.id).map(m => `
+                                <button onclick="switchMember('${m.id}')" class="w-full flex items-center gap-3 p-3 rounded-2xl transition-all ${state.activeMember.id === m.id ? 'bg-purple-500/20 border border-purple-500/30' : 'hover:bg-white/5 border border-transparent'} group">
+                                    <img src="${m.img}" class="w-9 h-9 rounded-xl object-cover shadow-md">
+                                    <div class="text-left overflow-hidden">
+                                        <p class="text-[11px] font-bold truncate ${state.activeMember.id === m.id ? 'text-white' : 'text-slate-400'}">${m.name}</p>
+                                        <p class="text-[8px] font-bold text-slate-500 uppercase">${m.role}</p>
+                                    </div>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="p-6 border-t border-white/5">
+                        <button onclick="logout()" class="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-white/5 hover:bg-rose-500/10 hover:border-rose-500/20 text-slate-500 hover:text-rose-500 transition-all text-[9px] font-black uppercase tracking-widest">Sair</button>
+                    </div>
+                </aside>
+
+                <main class="flex-1 overflow-y-auto custom-scrollbar p-10 lg:p-16">
+                    <header class="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-16">
+                        <div class="flex items-center gap-8 animate-pop">
+                            <img src="${state.activeMember.img}" class="w-24 h-24 rounded-[1.8rem] object-cover border-2 border-white/10 shadow-2xl">
+                            <div>
+                                <h2 class="text-6xl font-black tracking-tighter uppercase leading-none">${state.activeMember.name.split(' ')[0]}</h2>
+                                <p class="text-purple-400 font-black text-[11px] uppercase tracking-[0.6em] mt-2">${state.activeMember.role}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-6 px-7 py-4 card-glass rounded-3xl">
+                            <button onclick="changeDate(-1)" class="p-1 hover:scale-125 transition-transform"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
+                            <span class="font-bold text-sm uppercase tracking-[0.2em] min-w-[140px] text-center">${dateStr}</span>
+                            <button onclick="changeDate(1)" class="p-1 hover:scale-125 transition-transform"><i data-lucide="chevron-right" class="w-6 h-6"></i></button>
+                        </div>
+                    </header>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-12">
+                        <div class="lg:col-span-3 card-glass p-10 rounded-[2.5rem] max-md:p-6">
+                            <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Métrica de Performance</p>
+                            <div class="h-48 w-full"><canvas id="perfChart"></canvas></div>
+                        </div>
+                        <div class="card-glass p-6 rounded-[2.5rem] flex flex-col items-center justify-center text-center">
+                            <div class="text-5xl font-black mb-1 text-purple-400">${progress}%</div>
+                            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest">Conclusão</p>
+                        </div>
+                    </div>
+
+                    ${state.isAdmin ? `
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12 animate-pop">
+                        <div class="lg:col-span-2 card-glass p-8 rounded-[2.5rem] max-md:p-6">
+                            <p class="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-6">Benchmark Equipe</p>
+                            <div class="h-56"><canvas id="adminTeamChart"></canvas></div>
+                        </div>
+                        <div class="card-glass p-8 rounded-[2.5rem] flex flex-col justify-center text-center">
+                             <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Liderança Ativa</p>
+                             <div id="topPerformer" class="text-white font-bold text-lg">Processando Dados...</div>
+                        </div>
+                    </div>` : ''}
+
+                    <form onsubmit="addHabit(event)" class="relative mb-12 max-w-4xl">
+                        <input id="newHabitInput" type="text" autocomplete="off" placeholder="Definir nova meta prioritária..." class="w-full bg-transparent border-b-2 border-white/10 py-6 pr-36 outline-none focus:border-purple-500 text-2xl font-bold transition-all placeholder:text-white/10 text-white">
+                        <button type="submit" class="absolute right-0 top-1/2 -translate-y-1/2 btn-primary px-10 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest">Deploy</button>
+                    </form>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pb-24">
+                        ${state.habits.sort((a,b) => b.createdAt - a.createdAt).map(h => {
+                            const isDone = h.completedDays?.includes(state.selectedDate);
+                            const streak = h.completedDays?.length || 0;
+                            return `
+                                <div class="card-glass p-7 rounded-[2rem] flex flex-col justify-between h-48 habit-card ${isDone ? 'completed' : ''} group">
+                                    <div class="flex justify-between items-start">
+                                        <button onclick="toggleHabit('${h.id}')" class="w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${isDone ? 'bg-green-500 text-white shadow-lg shadow-green-500/20' : 'bg-white/5 text-white/20 hover:bg-white/10 hover:text-white'}">
+                                            <i data-lucide="${isDone ? 'check' : 'plus'}" class="w-6 h-6"></i>
+                                        </button>
+                                        <button onclick="deleteHabit('${h.id}')" class="opacity-0 group-hover:opacity-100 p-2 text-white/20 hover:text-rose-500 transition-all">
+                                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-extrabold text-lg mb-2 leading-tight ${isDone ? 'text-slate-500 line-through' : 'text-white'}">${h.name}</h4>
+                                        <div class="flex items-center gap-3">
+                                            <div class="h-1 flex-1 bg-white/5 rounded-full overflow-hidden">
+                                                <div class="h-full bg-purple-500" style="width: ${Math.min(streak * 10, 100)}%"></div>
+                                            </div>
+                                            <span class="text-[9px] font-black text-slate-500 uppercase">${streak} PTS</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </main>
+            `;
+        }
+
+        function updateMainChart() {
+            const canvas = document.getElementById('perfChart');
+            if (!canvas) return;
+            const labels = []; const data = [];
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date(); d.setDate(d.getDate() - i);
+                const str = d.toISOString().split('T')[0];
+                labels.push(d.toLocaleDateString('pt-BR', { weekday: 'short' }).toUpperCase());
+                data.push(state.habits.filter(h => h.completedDays?.includes(str)).length);
+            }
+            if (mainChart) mainChart.destroy();
+            mainChart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: { labels, datasets: [{ data, borderColor: '#a855f7', borderWidth: 3, pointRadius: 4, fill: true, tension: 0.4, backgroundColor: 'rgba(168, 85, 247, 0.1)' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.2)', font: { size: 9, weight: 'bold' } } } } }
+            });
+        }
+
+        function updateAdminChart() {
+            const canvas = document.getElementById('adminTeamChart');
+            if (!canvas) return;
+            const labels = TEAM.map(m => m.name.split(' ')[0]);
+            const data = TEAM.map(m => (state.allTeamData[m.id] || []).reduce((acc, h) => acc + (h.completedDays?.length || 0), 0));
+            if (adminChart) adminChart.destroy();
+            adminChart = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: { labels, datasets: [{ data, backgroundColor: '#a855f7', borderRadius: 8 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: 'rgba(255,255,255,0.3)', font: { size: 10, weight: 'bold' } } } } }
+            });
+
+            const topIdx = data.indexOf(Math.max(...data));
+            const topEl = document.getElementById('topPerformer');
+            if (topEl && Math.max(...data) > 0) {
+                topEl.innerHTML = `<span class="text-amber-500 drop-shadow-lg">🏆 ${TEAM[topIdx].name}</span>`;
+            } else if (topEl) {
+                topEl.innerHTML = `<span class="text-slate-500 uppercase text-xs">Aguardando Engajamento</span>`;
+            }
+        }
+
+        window.onload = async () => {
+            // Safety fallback: se em 4 segundos nada acontecer, força a tela
+            const safetyTimeout = setTimeout(() => {
+                if(!state.initialSyncDone) {
+                    console.warn("Safety Timeout ativado: Forçando interface.");
+                    hideLoader();
+                    render();
+                }
+            }, 4000);
+
+            if(!auth) {
+                clearTimeout(safetyTimeout);
+                hideLoader();
+                render();
+                return;
+            }
+
+            onAuthStateChanged(auth, (u) => {
+                state.user = u;
+                if (state.isLogged && u) {
+                    syncData().then(() => clearTimeout(safetyTimeout));
+                } else {
+                    clearTimeout(safetyTimeout);
+                    hideLoader();
+                    render();
+                }
+            });
+
+            try {
+                if (authToken) {
+                    await signInWithCustomToken(auth, authToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (e) {
+                console.error("Erro na autenticação:", e);
+                clearTimeout(safetyTimeout);
+                hideLoader();
+                render();
+            }
+        };
+    </script>
 </body>
 </html>
